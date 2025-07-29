@@ -1,0 +1,17 @@
+{
+  "name": "jdbc-sink",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+    "topics.regex": "sql1\\.dbo\\.(ComplianceScheduleOn|ComplianceTransaction)",
+    "connection.url": "jdbc:sqlserver://host.docker.internal:1433;databaseName=vitComplianceSystem;user=sa;password=Srishti!sqlw0rd;",
+    "insert.mode": "insert",
+    "auto.create": "false",
+    "auto.evolve": "false",
+    "table.name.format": "5_dashboard_summary",
+    "transforms": "Reroute",
+    "transforms.Reroute.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.Reroute.regex": ".*",
+    "transforms.Reroute.replacement": "5_dashboard_summary"
+  }
+}

@@ -1,0 +1,117 @@
+version: "3.8"
+
+services:
+  sqlserver:
+    build:
+      context: ./mssql
+      dockerfile: Dockerfile
+    image: custom-sqlserver
+    container_name: sqlserver-dev
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Srishti!sqlw0rd
+      - MSSQL_AGENT_ENABLED=true
+      - MSSQL_CONFIG_FILE=/etc/mssql/mssql.conf
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - cdc-net
+
+  api-server:
+    build:
+      context: ./api-server
+    container_name: api-server
+    image: cdc-project-api-server
+    ports:
+      - "5050:5050"
+    networks:
+      - cdc-net
+    depends_on:
+      - sqlserver
+
+  # 1) Redpanda – Kafka-API compatible broker with persistent volumes
+  redpanda:
+    image: redpandadata/redpanda:v23.2.17
+    container_name: redpanda
+    platform: linux/amd64  
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - "1G"
+      - --reserve-memory
+      - "0M"
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "info"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    networks:             
+      - cdc-net
+
+  # 2) Kafka Connect with Debezium plugins & bootstrap script
+  connect:
+    image: debezium/connect:2.6
+    container_name: kafka-connect
+    platform: linux/amd64  # ensure compatibility on Mac M1/M2
+    ports:
+      - "8083:8083"
+    networks:
+      - cdc-net
+    environment:
+      - BOOTSTRAP_SERVERS=redpanda:9092
+
+      # Kafka Connect distributed mode internal topics
+      - GROUP_ID=debezium-sqlserver
+      - CONFIG_STORAGE_TOPIC=dbhistory.config
+      - OFFSET_STORAGE_TOPIC=dbhistory.offsets
+      - STATUS_STORAGE_TOPIC=dbhistory.status
+
+      # Use JSON converters (avoid schema registry)
+      - KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - KEY_CONVERTER_SCHEMAS_ENABLE=false
+      - VALUE_CONVERTER_SCHEMAS_ENABLE=false
+
+      # REST API for Kafka Connect
+      - REST_PORT=8083
+    volumes:
+      # Mount connector plugin JARs
+      # Mount connector config files
+      # Mount bootstrap script
+      # NEW: Mount HTTP Sink connector plugin
+      - ./plugins:/kafka/connect/debezium
+      - ./connect/bootstrap.sh:/usr/local/bin/bootstrap.sh:ro
+      - ./connect/sqlserver-cdc.json:/etc/kafka-connect/sqlserver-cdc.json:ro
+      - ./sink/jdbc-sink.json:/etc/kafka-connect/jdbc-sink.json:ro
+      - ./plugins/http-sink:/kafka/connect/http-Sink
+      - ./connect/http-sink.json:/etc/kafka-connect/http-sink.json:ro
+
+    entrypoint: ["/usr/local/bin/bootstrap.sh"]
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+volumes:
+  redpanda-data:
+  sqlserver-data:
+
+networks:
+  cdc-net:
+    driver: bridge

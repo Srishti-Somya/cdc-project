@@ -1,0 +1,32 @@
+{
+  "name": "http-sink",
+  "config": {
+    "connector.class": "io.confluent.connect.http.HttpSinkConnector",
+    "tasks.max": "1",
+
+    "topics.regex": "sqlserver\\.vitComplianceSystem\\.dbo\\.(ComplianceScheduleOn|ComplianceTransaction)",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "headers.converter": "org.apache.kafka.connect.storage.SimpleHeaderConverter",
+
+    "http.api.url": "http://api-server:5050/ingest",
+    "http.headers": "Content-Type:application/json",
+    "request.method": "POST",
+    "request.body.format": "json",
+    "batch.max.size": "10",
+
+    "reporter.bootstrap.servers": "redpanda:9092",
+    "confluent.topic.bootstrap.servers": "redpanda:9092",
+    "confluent.topic.replication.factor": "1",
+
+    "reporter.result.topic.name": "success-responses",
+    "reporter.error.topic.name": "error-responses",
+    "reporter.result.topic.replication.factor": "1",
+    "reporter.error.topic.replication.factor": "1",
+    "behavior.on.null.values": "ignore",
+    "flush.synchronous": "true"
+  }
+}
