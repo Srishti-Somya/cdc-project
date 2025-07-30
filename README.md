@@ -1,16 +1,14 @@
-# CDC Project - Step by Step Guide
+# CDC Project - Under TeamLease Regtech Pvt. Ltd.
 
 ## Prerequisites
 
 1. **Docker Desktop**
-   - Minimum 8GB RAM allocated to Docker
-   - Ports available: 1433, 5050, 9092, 8083
+   - 8GB RAM allocated to Docker
+   - Ports used: 1433, 5050, 9092, 8083
 
 2. **SQL Client** (one of these)
    - Azure Data Studio
    - SQL Server Management Studio
-   - DBeaver
-   - Or any other SQL client that supports SQL Server
 
 ## Running the Project
 
