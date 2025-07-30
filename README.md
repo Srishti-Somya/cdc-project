@@ -58,7 +58,7 @@
 
 ## Testing the Pipeline
 
-1. **Connect to SQL Server**
+1. **Connect to SQL Server** - change your credentials for host, username, password as required
    ```
    Host: localhost
    Port: 1433
